@@ -14,8 +14,10 @@ from scipy.optimize import curve_fit
 from .utils import detect_shot, detect_image, detect_API, tensorflow_init, openpose_init
 from statistics import mean
 tf.disable_v2_behavior()
+from google.colab.patches import cv2_imshow # for image display
 
 def getVideoStream(video_path):
+    print("here", video_path)
     datum, opWrapper = openpose_init()
     detection_graph, image_tensor, boxes, scores, classes, num_detections = tensorflow_init()
 
@@ -61,6 +63,12 @@ def getVideoStream(video_path):
     with tf.Session(graph=detection_graph, config=config) as sess:
         while True:
             ret, img = cap.read()
+
+            w_frame, h_frame = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            fps, frames = cap.get(cv2.CAP_PROP_FPS), cap.get(cv2.CAP_PROP_FRAME_COUNT)
+            fourcc = cv2.VideoWriter_fourcc(*'XVID')
+            out = cv2.VideoWriter('result.avi', fourcc, fps, (w_frame, h_frame))
+
             if ret == False:
                 break
             skip_count += 1
@@ -73,7 +81,10 @@ def getVideoStream(video_path):
             detection = cv2.resize(detection, (0, 0), fx=0.83, fy=0.83)
             frame = cv2.imencode('.jpg', detection)[1].tobytes()
             result = (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-            yield result
+
+            cv2_imshow(detection)
+            out.write(detection[:, :, ::-1])
+    #         yield result
 
 
     # getting average shooting angle

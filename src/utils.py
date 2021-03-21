@@ -12,6 +12,7 @@ import argparse
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 tf.disable_v2_behavior()
+from google.colab.patches import cv2_imshow # for image display
 
 def tensorflow_init():
     MODEL_NAME = 'inference_graph'
@@ -38,7 +39,7 @@ def openpose_init():
             sys.path.append(os.path.dirname(os.getcwd()))
             import OpenPose.Release.pyopenpose as op
         else:
-            path = os.path.join(os.getcwd(), 'OpenPose/openpose')
+            path = os.path.join(os.getcwd(), '/usr/local/python')
             print(path)
             sys.path.append(path)
             import pyopenpose as op
@@ -118,6 +119,9 @@ def getAngleFromDatum(datum):
     return elbowAngle, kneeAngle, elbowCoord, kneeCoord
 
 def detect_shot(frame, trace, width, height, sess, image_tensor, boxes, scores, classes, num_detections, previous, during_shooting, shot_result, fig, datum, opWrapper, shooting_pose):
+    # out_filename = 'tracking_output' + ".avi"
+    # vwriter = cv2.VideoWriter(out_filename,cv2.VideoWriter_fourcc(*'MJPG'),10, (1829,687)) 
+
     global shooting_result
 
     if(shot_result['displayFrames'] > 0):
@@ -130,7 +134,8 @@ def detect_shot(frame, trace, width, height, sess, image_tensor, boxes, scores, 
 
     # getting openpose keypoints
     datum.cvInputData = frame
-    opWrapper.emplaceAndPop([datum])
+    import pyopenpose as op
+    opWrapper.emplaceAndPop(op.VectorDatum([datum]))
     try:
         headX, headY, headConf = datum.poseKeypoints[0][0]
         handX, handY, handConf = datum.poseKeypoints[0][4]
@@ -295,7 +300,16 @@ def detect_shot(frame, trace, width, height, sess, image_tensor, boxes, scores, 
                 previous['hoop'][2] = xmax
                 previous['hoop'][3] = ymin
                 previous['hoop_height'] = max(ymin, previous['hoop_height'])
-
+    
+    # vwriter.write(cv2.cvtColor(np.asarray(frame), cv2.COLOR_RGB2BGR))
+    # imcv = cv2.cvtColor(np.asarray(frame), cv2.COLOR_RGB2BGR)
+    #print("imcv ", imcv)
+    cv2_imshow(frame[:, :, ::-1])
+    # plt.figure(figsize=(12, 10))
+    # plt.imshow(frame[:, :, ::-1])
+    # plt.title("OpenPose 1.5.0 - Tutorial Python API")
+    # plt.axis("off")
+    # plt.show()
     combined = np.concatenate((frame, trace), axis=1)
     return combined, trace
 
